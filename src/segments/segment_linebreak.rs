@@ -1,4 +1,3 @@
-use std::borrow::Cow;
 use crate::{Powerline, Segment, Shell};
 
 pub fn segment_linebreak(p: &mut Powerline) {

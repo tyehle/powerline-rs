@@ -1,69 +1,55 @@
-use crate::{Powerline, Segment};
-use std::{
-    borrow::Cow,
-    env,
-    ffi::OsStr,
-    path::PathBuf
-};
+use crate::{format, Powerline, Segment, Shell};
+use std::{env, path::PathBuf};
 
-pub fn segment_cwd(p: &mut Powerline, cwd_max_depth: u8, cwd_max_dir_size: u8) {
+fn simple_cwd_string(shell: Shell, cwd_max_depth: u8) -> String {
+    // are we in the home dir?
+    let mut in_home = false;
     let mut path = env::current_dir().unwrap_or_else(|_| PathBuf::from("error"));
     if let Some(home) = dirs::home_dir() {
-        let mut new_path = None;
         if let Ok(new) = path.strip_prefix(&home) {
-            p.segments.push(Segment::new(p.theme.home_bg, p.theme.home_fg, "~"));
-            // TODO: NLL: path = new.to_path_buf();
-            new_path = Some(new.to_path_buf());
-        }
-        if let Some(new) = new_path {
-            path = new;
+            in_home = true;
+            path = new.to_path_buf();
+        } else if let Ok(new) = path.strip_prefix("/") {
+            path = new.to_path_buf();
         }
     }
 
     let length = path.iter().count();
-    let mut dirs = path.iter();
 
-    let cwd_max_depth = cwd_max_depth as usize;
+    // are there too many elements in the path?
+    let to_skip = if cwd_max_depth > 0 && length > cwd_max_depth as usize {
+        length - cwd_max_depth as usize
+    } else {
+        0
+    };
 
-    if cwd_max_depth != 1 {
-        if let Some(dir) = dirs.next() {
-            // Either there's no cwd_max_depth, or it's bigger than 1
-            segment(p, dir, length == 1, cwd_max_dir_size);
+    if length == 0 {
+        let loc = if in_home { "~" } else { "/" };
+        return format::as_bold(shell, loc);
+    }
 
-            // It would be sane here to subtract 1 from both length and
-            // cwd_max_depth, to make it clear that we already tried one and
-            // what the below code is doing. HOWEVER, currently that results in
-            // the exact same outcome.
+    let mut out = if in_home { "~".to_owned() } else { "".to_owned() };
+
+    if to_skip > 0 {
+        out += "/…"
+    }
+
+    let mut path_iter = path.iter().skip(to_skip);
+    let mut next = path_iter.next();
+    while let Some(dir) = next {
+        next = path_iter.next();
+        out += "/";
+        let name = &dir.to_string_lossy();
+        if next.is_none() {
+            out += &format::as_bold(shell, name);
+        } else {
+            out += &name;
         }
     }
-    if cwd_max_depth > 0 && length > cwd_max_depth {
-        p.segments.push(Segment::new(p.theme.path_bg, p.theme.path_fg, Cow::from("…")));
 
-        for _ in 0..length - cwd_max_depth {
-            dirs.next().unwrap();
-        }
-    }
-
-    let mut next = dirs.next();
-    while let Some(cursor) = next {
-        next = dirs.next();
-
-        segment(p, cursor, next.is_none(), cwd_max_dir_size);
-    }
+    return out;
 }
-pub fn segment(p: &mut Powerline, name: &OsStr, last: bool, cwd_max_dir_size: u8) {
-    let mut name = name.to_string_lossy().into_owned();
 
-    let cwd_max_dir_size = cwd_max_dir_size as usize;
-    if cwd_max_dir_size > 0 && name.chars().count() > cwd_max_dir_size {
-        let mut start = 0;
-        for c in name.chars().take(cwd_max_dir_size) {
-            start += c.len_utf8();
-        }
-        name.drain(start..);
-        name.push('…');
-    }
-
-    let fg = if last { p.theme.cwd_fg } else { p.theme.path_fg };
-    p.segments.push(Segment::new(p.theme.path_bg, fg, name));
+pub fn segment_cwd(p: &mut Powerline, cwd_max_depth: u8) {
+    p.segments.push(Segment::new(p.theme.path_bg, p.theme.path_fg, simple_cwd_string(p.shell, cwd_max_depth)).dont_escape());
 }

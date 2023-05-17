@@ -40,7 +40,9 @@ pub struct Segment {
     before: &'static str,
     after: &'static str,
     conditional: bool,
+    no_space_before: bool,
     no_space_after: bool,
+    bold: bool,
 
     escaped: bool,
     text: Cow<'static, str>
@@ -56,7 +58,9 @@ impl Segment {
             before: "",
             after: "",
             conditional: false,
+            no_space_before: false,
             no_space_after: false,
+            bold: false,
 
             escaped: false,
             text:  text.into()
@@ -64,6 +68,10 @@ impl Segment {
     }
     pub fn dont_escape(mut self) -> Self {
         self.escaped = true;
+        self
+    }
+    pub fn bold(mut self) -> Self {
+        self.bold = true;
         self
     }
     pub fn with_before(mut self, before: &'static str) -> Self {
@@ -85,6 +93,10 @@ impl Segment {
         self.no_space_after = true;
         self
     }
+    pub fn with_no_space_before(mut self) -> Self {
+        self.no_space_before = true;
+        self
+    }
     pub fn escape(&mut self, shell: Shell) {
         if self.escaped {
             return;
@@ -92,37 +104,47 @@ impl Segment {
         escape(shell, self.text.to_mut());
         self.escaped = true;
     }
-    pub fn print(&self, next: Option<&Segment>, shell: Shell, theme: &Theme) {
-        print!("{}{}{} {}", self.before, Fg(shell, self.fg), Bg(shell, self.bg), self.text);
+    pub fn print(&self, next: Option<&Segment>, shell: Shell, _theme: &Theme) {
+        print!("{}{}{}", self.before, fg(shell, self.fg), bg(shell, self.bg));
 
-        if !self.no_space_after {
+        if !self.no_space_before {
+            print!(" ");
+        }
+
+        if self.bold {
+            print!("{}", as_bold(shell, &self.text));
+        } else {
+            print!("{}", self.text);
+        }
+
+        if !self.no_space_after && (next.map(|n| n.bg != self.bg).unwrap_or(true)) {
             print!(" ")
         }
         match next {
             Some(next) if next.is_conditional() => {},
-            Some(next) if next.bg == self.bg => print!("{}", Fg(shell, theme.separator_fg)),
-            Some(next) if self.bg == 0 => print!("{}{}",  Fg(shell, next.bg), Bg(shell, next.bg)),
-            Some(next) => print!("{}{}",  Fg(shell, self.bg), Bg(shell, next.bg)),
+            Some(next) if next.bg == self.bg => {}, //print!("{}\u{e0b5}", fg(shell, theme.separator_fg)),
+            Some(next) if self.bg == 0 => print!("{}{}\u{e0c6}", fg(shell, next.bg), bg(shell, next.bg)),
+            Some(next) => print!("{}{}\u{e0c6}", fg(shell, self.bg), bg(shell, next.bg)),
             // Last tile resets colors
-            None       => print!("{}{}{}",Fg(shell, self.bg), Reset(shell, false), Reset(shell, true))
+            None       => print!("{}{}\u{e0c6}{}", fg(shell, self.bg), reset(shell, false), reset(shell, true))
         }
         print!("{}", self.after);
     }
-    pub fn print_rtl(&self, next: Option<&Segment>, shell: Shell, theme: &Theme) {
+    pub fn print_rtl(&self, next: Option<&Segment>, shell: Shell, _theme: &Theme) {
         // Here, next is going leftwards - see how this func is called in main.rs .
         print!("{}", self.after);
         match next {
             Some(next) if next.is_conditional() => {},
-            Some(next) if next.bg == self.bg =>
-                print!("{}{}", Fg(shell, theme.separator_fg), Bg(shell, self.bg)),
-            Some(next) => print!("{}{}",  Fg(shell, self.bg), Bg(shell, next.bg)),
-            None       => print!("{}", Fg(shell, self.bg))
+            Some(next) if next.bg == self.bg => {},
+                // print!("{}{}", fg(shell, theme.separator_fg), bg(shell, self.bg)),
+            Some(next) => print!("{}{}",  fg(shell, self.bg), bg(shell, next.bg)),
+            None       => print!("{}", fg(shell, self.bg))
         }
-        print!("{}{} {}", Fg(shell, self.fg), Bg(shell, self.bg), self.text);
+        print!("{}{} {}", fg(shell, self.fg), bg(shell, self.bg), self.text);
 
         if !self.no_space_after {
             print!(" ")
         }
-        print!("{}{}{}", Reset(shell, false), Reset(shell, true), self.before);
+        print!("{}{}{}", reset(shell, false), reset(shell, true), self.before);
     }
 }

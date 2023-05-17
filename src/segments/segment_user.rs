@@ -33,8 +33,8 @@ pub fn segment_user(p: &mut Powerline) {
                     Cow::from("error")
                 } }
             }
-        ),
-        Shell::Bash => Segment::new(bg, fg, "\\u").dont_escape(),
-        Shell::Zsh => Segment::new(bg, fg, "%n").dont_escape(),
+        ).bold(),
+        Shell::Bash => Segment::new(bg, fg, "\\u").dont_escape().bold(),
+        Shell::Zsh => Segment::new(bg, fg, "%n").dont_escape().bold(),
     });
 }

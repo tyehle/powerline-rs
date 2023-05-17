@@ -1,5 +1,5 @@
 use std::{env, path};
-use crate::{Powerline, Segment};
+use crate::{format, Powerline, Segment};
 
 pub fn segment_virtualenv(p: &mut Powerline) {
     if let Ok(Some(virtual_env_name)) = env::var("VIRTUAL_ENV")
@@ -13,7 +13,7 @@ pub fn segment_virtualenv(p: &mut Powerline) {
         p.segments.push(Segment::new(
             p.theme.virtual_env_bg,
             p.theme.virtual_env_fg,
-            virtual_env_name,
-        ));
+            format::as_bold(p.shell, &virtual_env_name),
+        ).dont_escape());
     }
 }

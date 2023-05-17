@@ -11,6 +11,7 @@ fn discover_if_none(git: &mut Option<Repository>) -> bool {
         git.is_some()
     } else { true }
 }
+
 fn statuses_if_none(git: &Repository, statuses: &mut Option<Vec<Status>>) -> bool {
     #[cfg(feature = "flame")]
     let _guard = flame::start_guard("git status");
@@ -101,7 +102,7 @@ pub fn segment_git(p: &mut Powerline) {
         bg = p.theme.git_clean_bg;
         fg = p.theme.git_clean_fg;
     }
-    p.segments.push(Segment::new(bg, fg, branch_name.unwrap()));
+    p.segments.push(Segment::new(bg, fg, String::from(" ") + &branch_name.unwrap()));
 
     #[cfg(feature = "flame")]
     let _guard = flame::start_guard("checking remotes");
@@ -110,20 +111,16 @@ pub fn segment_git(p: &mut Powerline) {
         if let Some(upstream) = upstream {
             if let Ok((ahead, behind)) = git.graph_ahead_behind(local, upstream) {
                 if ahead > 0 {
-                    let mut ahead = if ahead == 1 { String::new() } else { ahead.to_string() };
-                    ahead.push(p.theme.git_ahead_char);
-                    p.segments.push(Segment::new(p.theme.git_ahead_bg, p.theme.git_ahead_fg, ahead));
+                    p.segments.push(Segment::new(p.theme.git_ahead_bg, p.theme.git_ahead_fg, format!("{} {}", p.theme.git_ahead_char, ahead)));
                 }
-
                 if behind > 0 {
-                    let mut behind = if behind == 1 { String::new() } else { behind.to_string() };
-                    behind.push(p.theme.git_behind_char);
-                    p.segments.push(Segment::new(p.theme.git_behind_bg, p.theme.git_behind_fg, behind));
+                    p.segments.push(Segment::new(p.theme.git_behind_bg, p.theme.git_behind_fg, format!("{} {}", p.theme.git_behind_char, behind)));
                 }
             }
         }
     }
 }
+
 pub fn segment_gitstage(p: &mut Powerline) {
     #[cfg(feature = "flame")]
     let _guard = flame::start_guard("segment gitstage");
@@ -131,7 +128,7 @@ pub fn segment_gitstage(p: &mut Powerline) {
     if !discover_if_none(&mut p.git) {
         return;
     }
-    let git = p.git.as_ref().unwrap();
+    let git = p.git.as_mut().unwrap();
 
     if !statuses_if_none(git, &mut p.git_statuses) {
         return;
@@ -142,9 +139,12 @@ pub fn segment_gitstage(p: &mut Powerline) {
     flame::start("counting");
 
     let mut staged = 0;
-    let mut notstaged = 0;
+    let mut changed = 0;
     let mut untracked = 0;
     let mut conflicted = 0;
+    let mut stashes = 0;
+
+    git.stash_foreach(|_index, _msg, _id| {stashes += 1; true}).ok();
 
     for status in statuses {
         if status.contains(Status::INDEX_NEW)
@@ -157,7 +157,7 @@ pub fn segment_gitstage(p: &mut Powerline) {
         if status.contains(Status::WT_MODIFIED)
             || status.contains(Status::WT_TYPECHANGE)
             || status.contains(Status::WT_DELETED) {
-            notstaged += 1;
+            changed += 1;
         }
         if status.contains(Status::WT_NEW) {
             untracked += 1;
@@ -171,23 +171,18 @@ pub fn segment_gitstage(p: &mut Powerline) {
     flame::end("counting");
 
     if staged > 0 {
-        let mut string = if staged == 1 { String::with_capacity(1) } else { staged.to_string() };
-        string.push(p.theme.git_staged_char);
-        p.segments.push(Segment::new(p.theme.git_staged_bg, p.theme.git_staged_fg, string));
+        p.segments.push(Segment::new(p.theme.git_staged_bg, p.theme.git_staged_fg, format!("{} {}", p.theme.git_staged_char, staged)));
     }
-    if notstaged > 0 {
-        let mut string = if notstaged == 1 { String::with_capacity(1) } else { notstaged.to_string() };
-        string.push(p.theme.git_notstaged_char);
-        p.segments.push(Segment::new(p.theme.git_notstaged_bg, p.theme.git_notstaged_fg, string));
+    if changed > 0 {
+        p.segments.push(Segment::new(p.theme.git_notstaged_bg, p.theme.git_notstaged_fg, format!("{} {}", p.theme.git_changed_char, changed)));
     }
     if untracked > 0 {
-        let mut string = if untracked == 1 { String::with_capacity(1) } else { untracked.to_string() };
-        string.push(p.theme.git_untracked_char);
-        p.segments.push(Segment::new(p.theme.git_untracked_bg, p.theme.git_untracked_fg, string));
+        p.segments.push(Segment::new(p.theme.git_untracked_bg, p.theme.git_untracked_fg, format!("{} {}", p.theme.git_untracked_char, untracked)));
     }
     if conflicted > 0 {
-        let mut string = if conflicted == 1 { String::with_capacity(1) } else { conflicted.to_string() };
-        string.push(p.theme.git_conflicted_char);
-        p.segments.push(Segment::new(p.theme.git_conflicted_bg, p.theme.git_conflicted_fg, string));
+        p.segments.push(Segment::new(p.theme.git_conflicted_bg, p.theme.git_conflicted_fg, format!("{} {}", p.theme.git_conflicted_char, conflicted)));
+    }
+    if stashes > 0 {
+        p.segments.push(Segment::new(p.theme.git_conflicted_bg, 31, format!("⚑ {}", stashes)));
     }
 }

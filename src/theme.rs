@@ -51,7 +51,7 @@ pub struct Theme {
     pub git_ahead_char: char,
     pub git_behind_char: char,
     pub git_staged_char: char,
-    pub git_notstaged_char: char,
+    pub git_changed_char: char,
     pub git_untracked_char: char,
     pub git_conflicted_char: char,
 
@@ -124,7 +124,7 @@ pub const DEFAULT: Theme = Theme {
     git_ahead_char: '⬆',
     git_behind_char: '⬇',
     git_staged_char: '✔',
-    git_notstaged_char: '✎',
+    git_changed_char: '✎',
     git_untracked_char: '+',
     git_conflicted_char: '*',
 
@@ -258,7 +258,7 @@ fn theme_index_char<'a>(theme: &'a mut Theme, name: &str) -> Option<&'a mut char
         "git_ahead_char" => Some(&mut theme.git_ahead_char),
         "git_behind_char" => Some(&mut theme.git_behind_char),
         "git_staged_char" => Some(&mut theme.git_staged_char),
-        "git_notstaged_char" => Some(&mut theme.git_notstaged_char),
+        "git_changed_char" => Some(&mut theme.git_changed_char),
         "git_untracked_char" => Some(&mut theme.git_untracked_char),
         "git_conflicted_char" => Some(&mut theme.git_conflicted_char),
 
