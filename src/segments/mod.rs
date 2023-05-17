@@ -40,7 +40,6 @@ pub struct Segment {
     before: &'static str,
     after: &'static str,
     conditional: bool,
-    no_space_before: bool,
     no_space_after: bool,
     bold: bool,
 
@@ -58,7 +57,6 @@ impl Segment {
             before: "",
             after: "",
             conditional: false,
-            no_space_before: false,
             no_space_after: false,
             bold: false,
 
@@ -93,10 +91,6 @@ impl Segment {
         self.no_space_after = true;
         self
     }
-    pub fn with_no_space_before(mut self) -> Self {
-        self.no_space_before = true;
-        self
-    }
     pub fn escape(&mut self, shell: Shell) {
         if self.escaped {
             return;
@@ -105,11 +99,7 @@ impl Segment {
         self.escaped = true;
     }
     pub fn print(&self, next: Option<&Segment>, shell: Shell, _theme: &Theme) {
-        print!("{}{}{}", self.before, fg(shell, self.fg), bg(shell, self.bg));
-
-        if !self.no_space_before {
-            print!(" ");
-        }
+        print!("{}{}{} ", self.before, fg(shell, self.fg), bg(shell, self.bg));
 
         if self.bold {
             print!("{}", as_bold(shell, &self.text));
