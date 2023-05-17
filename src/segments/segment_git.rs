@@ -53,6 +53,7 @@ pub fn segment_git(p: &mut Powerline) {
     let mut branch_name = None;
     let mut local    = None;
     let mut upstream = None;
+    let mut detached = false;
 
     for branch in branches.unwrap() {
         if let Ok((branch, _)) = branch {
@@ -78,6 +79,7 @@ pub fn segment_git(p: &mut Powerline) {
         let _guard = flame::start_guard("search head");
 
         // Could be a detached head
+        detached = true;
         if let Ok(head) = git.head() {
             if let Some(target) = head.target() {
                 branch_name = git.find_object(target, Some(ObjectType::Any))
@@ -87,7 +89,7 @@ pub fn segment_git(p: &mut Powerline) {
                                                 .map(|s| s.to_string()))
             }
         } else {
-            p.segments.push(Segment::new(p.theme.git_dirty_bg, p.theme.git_dirty_fg, "Big Bang"));
+            p.segments.push(Segment::new(p.theme.git_detached_bg, p.theme.git_detached_fg, "ERROR"));
             return;
         }
     }
@@ -101,6 +103,10 @@ pub fn segment_git(p: &mut Powerline) {
     if statuses.is_empty() {
         bg = p.theme.git_clean_bg;
         fg = p.theme.git_clean_fg;
+    }
+    if detached {
+        bg = p.theme.git_detached_bg;
+        fg = p.theme.git_detached_fg;
     }
     p.segments.push(Segment::new(bg, fg, String::from(" ") + &branch_name.unwrap()));
 
@@ -174,7 +180,7 @@ pub fn segment_gitstage(p: &mut Powerline) {
         p.segments.push(Segment::new(p.theme.git_staged_bg, p.theme.git_staged_fg, format!("{} {}", p.theme.git_staged_char, staged)));
     }
     if changed > 0 {
-        p.segments.push(Segment::new(p.theme.git_notstaged_bg, p.theme.git_notstaged_fg, format!("{} {}", p.theme.git_changed_char, changed)));
+        p.segments.push(Segment::new(p.theme.git_changed_bg, p.theme.git_changed_fg, format!("{} {}", p.theme.git_changed_char, changed)));
     }
     if untracked > 0 {
         p.segments.push(Segment::new(p.theme.git_untracked_bg, p.theme.git_untracked_fg, format!("{} {}", p.theme.git_untracked_char, untracked)));
@@ -183,6 +189,6 @@ pub fn segment_gitstage(p: &mut Powerline) {
         p.segments.push(Segment::new(p.theme.git_conflicted_bg, p.theme.git_conflicted_fg, format!("{} {}", p.theme.git_conflicted_char, conflicted)));
     }
     if stashes > 0 {
-        p.segments.push(Segment::new(p.theme.git_conflicted_bg, 31, format!("⚑ {}", stashes)));
+        p.segments.push(Segment::new(p.theme.git_stashed_bg, p.theme.git_stashed_fg, format!("{} {}", p.theme.git_stashed_char, stashes)));
     }
 }

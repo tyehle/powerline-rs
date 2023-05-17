@@ -46,7 +46,7 @@ pub fn build_cli() -> App<'static, 'static> {
                 .value_name("string")
                 .possible_values(crate::module::ALL)
                 .value_delimiter(",")
-                .default_value("ssh,cwd,perms,git,gitstage,nix-shell,root")
+                .default_value("user,host,ssh,cwd,perms,git,gitstage,virtualenv,root")
         )
         .arg(
             Arg::with_name("newline")
