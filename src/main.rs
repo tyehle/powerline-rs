@@ -127,6 +127,7 @@ fn main() {
             p.segments[n-i].print_rtl(p.segments.get(n-i+1), p.shell, &p.theme);
         }
     } else {
+        print!("{}\u{e0b6}", format::fg(p.shell, p.segments[0].bg));
         for i in 0..p.segments.len() {
             p.segments[i].escape(p.shell);
             p.segments[i].print(p.segments.get(i+1), p.shell, &p.theme);

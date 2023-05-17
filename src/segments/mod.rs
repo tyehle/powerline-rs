@@ -34,8 +34,8 @@ use std::borrow::Cow;
 use crate::theme::Theme;
 
 pub struct Segment {
-    bg: u8,
-    fg: u8,
+    pub bg: u8,
+    pub fg: u8,
 
     before: &'static str,
     after: &'static str,
@@ -116,7 +116,7 @@ impl Segment {
             Some(next) if self.bg == 0 => print!("{}{}\u{e0c6}", fg(shell, next.bg), bg(shell, next.bg)),
             Some(next) => print!("{}{}\u{e0c6}", fg(shell, self.bg), bg(shell, next.bg)),
             // Last tile resets colors
-            None       => print!("{}{}\u{e0c6}{}", fg(shell, self.bg), reset(shell, false), reset(shell, true))
+            None       => print!("{}{}\u{e0b0}{}", fg(shell, self.bg), reset(shell, false), reset(shell, true))
         }
         print!("{}", self.after);
     }
