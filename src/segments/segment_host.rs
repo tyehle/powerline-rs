@@ -20,7 +20,7 @@ pub fn segment_host(p: &mut Powerline) {
             let len = name.iter().position(|i| *i == 0).unwrap_or(name.len());
 
             if let Ok(name) = str::from_utf8(&name[..len]) {
-                string = Cow::from(String::from(name));
+                string = Cow::from(name.replace(".local", ""));
             }
         }
         p.segments.push(Segment::new(bg, fg, string));
